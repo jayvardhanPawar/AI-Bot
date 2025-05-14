@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mistral AI Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --header-bg: linear-gradient(90deg, #667eea, #764ba2);
+            --header-text: #ffffff;
+            --user-bg: #dcf8c6;
+            --bot-bg: #f1f0f0;
+            --body-bg: #f5f7fa;
+            --text-color: #333333;
+            --input-bg: #ffffff;
+            --primary-color: #667eea;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--body-bg);
+            color: var(--text-color);
+        }
+        header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+        }
+        .message-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            box-shadow: 0px 1px 3px rgba(0,0,0,0.1);
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        .chat-message.user {
+            background-color: var(--user-bg);
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .chat-message.assistant {
+            background-color: var(--bot-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        .input-container {
+            display: flex;
+            padding: 10px 20px;
+            background: var(--input-bg);
+            box-shadow: 0px -1px 4px rgba(0,0,0,0.1);
+        }
+        #message-input {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            outline: none;
+        }
+        #message-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px rgba(81,203,238,1);
+        }
+        #send-button {
+            margin-left: 10px;
+            padding: 0 20px;
+            background: var(--header-bg);
+            color: var(--header-text);
+            border: none;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+            transition: background 0.3s ease;
+        }
+        #send-button:hover {
+            opacity: 0.9;
+        }
+        @media (max-width: 600px) {
+            header {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+            .message-container {
+                padding: 15px;
+            }
+            .chat-message {
+                font-size: 0.95rem;
+            }
+            #send-button {
+                padding: 0 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>Mistral AI Chat</header>
+    <div id="message-container" class="message-container">
+        <!-- Chat messages will appear here -->
+    </div>
+    <div class="input-container">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+        <button id="send-button">Send</button>
+    </div>
+    <script>
+        const API_KEY = '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'; // Replace with your OpenRouter API key
+        const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const MODEL_ID = 'mistralai/mistral-7b-instruct';
+
+        const messageContainer = document.getElementById('message-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Keep track of the chat history
+        const messages = [];
+
+        // Function to add a message to the chat interface
+        function addMessage(role, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', role);
+            const messageText = document.createElement('div');
+            messageText.textContent = text;
+            messageDiv.appendChild(messageText);
+            messageContainer.appendChild(messageDiv);
+            // Scroll to the latest message
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        // Function to call the OpenRouter API with the chat messages
+        async function sendMessage() {
+            const userText = messageInput.value.trim();
+            if (!userText) return;
+            // Display user message
+            addMessage('user', userText);
+            messages.push({ role: 'user', content: userText });
+            messageInput.value = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL_ID,
+                        messages: messages
+                    })
+                });
+                const data = await response.json();
+                const botText = data.choices && data.choices.length > 0 
+                    ? data.choices[0].message.content 
+                    : "I'm sorry, I couldn't understand that.";
+                addMessage('assistant', botText);
+                messages.push({ role: 'assistant', content: botText });
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', 'Error: Unable to get a response.');
+            }
+        }
+
+        // Event listener for button click and Enter key
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
